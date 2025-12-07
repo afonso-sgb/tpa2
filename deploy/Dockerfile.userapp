@@ -1,0 +1,16 @@
+FROM eclipse-temurin:21-jre-alpine
+
+LABEL maintainer="TPA2 Team"
+LABEL description="User application for distributed email search"
+
+WORKDIR /app
+
+# Copy the userapp JAR
+COPY userapp/target/userapp.jar /app/userapp.jar
+
+# Environment variables with defaults
+ENV RABBITMQ_HOST="rabbitmq" \
+    RABBITMQ_PORT="5672"
+
+# Run the userapp
+ENTRYPOINT ["java", "-jar", "/app/userapp.jar"]

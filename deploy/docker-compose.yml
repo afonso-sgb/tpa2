@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: tpa2-rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - tpa2-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker1:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.worker
+    container_name: tpa2-worker1
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      WORKER_ID: worker-1
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      SHARED_FILES_DIR: /var/sharedfiles
+    volumes:
+      - shared-files:/var/sharedfiles
+    networks:
+      - tpa2-network
+    restart: unless-stopped
+
+  worker2:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.worker
+    container_name: tpa2-worker2
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      WORKER_ID: worker-2
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      SHARED_FILES_DIR: /var/sharedfiles
+    volumes:
+      - shared-files:/var/sharedfiles
+    networks:
+      - tpa2-network
+    restart: unless-stopped
+
+  worker3:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.worker
+    container_name: tpa2-worker3
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      WORKER_ID: worker-3
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      SHARED_FILES_DIR: /var/sharedfiles
+    volumes:
+      - shared-files:/var/sharedfiles
+    networks:
+      - tpa2-network
+    restart: unless-stopped
+
+volumes:
+  shared-files:
+    driver: local
+
+networks:
+  tpa2-network:
+    driver: bridge

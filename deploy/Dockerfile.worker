@@ -1,0 +1,21 @@
+FROM eclipse-temurin:21-jre-alpine
+
+LABEL maintainer="TPA2 Team"
+LABEL description="Worker service for distributed email search"
+
+WORKDIR /app
+
+# Copy the worker JAR
+COPY worker/target/worker.jar /app/worker.jar
+
+# Create directory for shared files
+RUN mkdir -p /var/sharedfiles
+
+# Environment variables with defaults
+ENV WORKER_ID="worker-1" \
+    RABBITMQ_HOST="rabbitmq" \
+    RABBITMQ_PORT="5672" \
+    SHARED_FILES_DIR="/var/sharedfiles"
+
+# Run the worker
+ENTRYPOINT ["java", "-jar", "/app/worker.jar"]
