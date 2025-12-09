@@ -34,9 +34,19 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
         </dependency>
-        <!-- Spread Toolkit (using spread-bin for Java bindings) -->
-        <!-- Note: Requires native spread daemon running -->
-        <!-- For now, we'll create a simulation layer that can be replaced -->
+        <!-- Spread Toolkit Java API -->
+        <!-- NOTE: This is a local JAR from Spread Toolkit installation -->
+        <!-- Download from: http://www.spread.org/download/spread-src-5.0.1.tar.gz -->
+        <!-- After installing Spread, copy spread.jar from spread-src-5.0.1/java/ -->
+        <!-- Install to local Maven repo: -->
+        <!-- mvn install:install-file -Dfile=spread.jar -DgroupId=org.spread -->
+        <!--   -DartifactId=spread -Dversion=5.0.1 -Dpackaging=jar -->
+        <dependency>
+            <groupId>org.spread</groupId>
+            <artifactId>spread</artifactId>
+            <version>5.0.1</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>

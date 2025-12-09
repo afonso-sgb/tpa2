@@ -1,0 +1,30 @@
+FROM ubuntu:24.04
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and install Spread
+WORKDIR /tmp
+COPY spread-src-5.0.1.tar.gz /tmp/spread-src-5.0.1.tar.gz
+RUN tar -xzf spread-src-5.0.1.tar.gz && \
+    cd spread-src-5.0.1 && \
+    ./configure && \
+    make && \
+    make install && \
+    cp daemon/spread /usr/local/sbin/spread && \
+    cd / && rm -rf /tmp/spread-src-5.0.1*
+
+# Create runtime directory
+RUN mkdir -p /var/run/spread
+
+# Copy configuration
+COPY spread/spread-local.conf /etc/spread.conf
+
+# Expose Spread port
+EXPOSE 4803
+
+# Run Spread daemon
+CMD ["/usr/local/sbin/spread", "-n", "localhost", "-c", "/etc/spread.conf"]

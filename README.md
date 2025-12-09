@@ -1,6 +1,28 @@
 # TPA2 - Distributed Email Search System
 
-A distributed system for searching email files using RabbitMQ for message brokering, GlusterFS for replicated file storage, and Spread toolkit for group communication and consensus.
+**Course:** Computação Distribuída (CD-2526)  
+**Academic Year:** 2025-2026  
+**Delivery Date:** December 13, 2025
+
+A distributed system for searching email files using RabbitMQ for message brokering, GlusterFS for replicated file storage, and **Real Spread Toolkit** for group communication and leader election.
+
+## ⚠️ CRITICAL: Dual Deployment Modes
+
+This project supports **TWO deployment modes**:
+
+### 1. **Local Development Mode** (Spread Simulation)
+- Uses `SpreadSimulator.java` (RabbitMQ topic exchange simulates Spread)
+- Runs in Docker containers
+- **Purpose:** Development and testing without Spread Toolkit installation
+- **Location:** Local Windows machine
+
+### 2. **Production GCP Mode** (Real Spread Toolkit) ✅ REQUIRED FOR DELIVERY
+- Uses `SpreadConnection.java` (Real Spread daemon connections)
+- Runs on Ubuntu 24 LTS VMs with **Spread Toolkit installed**
+- **Purpose:** Final deployment as per project requirements
+- **Location:** Google Cloud Platform
+
+📖 **Complete GCP deployment guide:** [GCP_DEPLOYMENT_GUIDE.md](GCP_DEPLOYMENT_GUIDE.md)
 
 ## Project Structure
 

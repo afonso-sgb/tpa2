@@ -29,7 +29,7 @@ public class ElectionManager {
     private static final int STATS_COLLECTION_TIMEOUT_MS = 2000;  // 2 seconds to collect stats
     
     private final String workerId;
-    private final SpreadSimulator spread;
+    private final SpreadAdapter spread;
     private final Channel rabbitChannel;
     private final long startTime;
     
@@ -40,7 +40,7 @@ public class ElectionManager {
     // Statistics providers
     private StatsProvider localStatsProvider;
     
-    public ElectionManager(String workerId, SpreadSimulator spread, Channel rabbitChannel) {
+    public ElectionManager(String workerId, SpreadAdapter spread, Channel rabbitChannel) {
         this.workerId = workerId;
         this.spread = spread;
         this.rabbitChannel = rabbitChannel;
@@ -77,7 +77,7 @@ public class ElectionManager {
             // Self-vote
             state.recordVote(workerId, workerId, true);
             
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error("Error initiating election", e);
             state.result.completeExceptionally(e);
         }
@@ -234,7 +234,7 @@ public class ElectionManager {
         }
     }
     
-    private void handleElectionMessage(SpreadMessage message) throws IOException {
+    private void handleElectionMessage(SpreadMessage message) throws Exception {
         ElectionPayload election = convertPayload(message.getPayload(), ElectionPayload.class);
         if (election == null) return;
         
@@ -285,7 +285,7 @@ public class ElectionManager {
                     SpreadMessageType.COORDINATOR_ANNOUNCE, workerId, announce);
                 spread.multicast(announceMsg);
                 logger.info("Multicasted coordinator announcement: winner={}", winner);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 logger.error("Error multicasting coordinator announcement", e);
             }
         }
@@ -313,7 +313,7 @@ public class ElectionManager {
         }
     }
     
-    private void handleStatsRequest(SpreadMessage message) throws IOException {
+    private void handleStatsRequest(SpreadMessage message) throws Exception {
         logger.info("Worker [{}] received stats request from [{}]", workerId, message.getSenderId());
         
         if (localStatsProvider != null) {

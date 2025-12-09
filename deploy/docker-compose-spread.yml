@@ -1,0 +1,20 @@
+# Docker Compose for Local Spread Testing
+# Runs a single Spread daemon for testing RealSpreadConnection locally
+
+services:
+  spread:
+    build:
+      context: .
+      dockerfile: Dockerfile.spread
+    container_name: spread-local
+    ports:
+      - "4803:4803"
+    networks:
+      - spread-net
+    volumes:
+      - ./spread/spread-local.conf:/etc/spread.conf:ro
+    restart: unless-stopped
+
+networks:
+  spread-net:
+    driver: bridge

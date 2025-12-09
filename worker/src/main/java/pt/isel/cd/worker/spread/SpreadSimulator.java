@@ -25,7 +25,7 @@ import java.util.function.Consumer;
  * 
  * The simulation uses RabbitMQ's topic exchange to mimic Spread's group communication.
  */
-public class SpreadSimulator implements AutoCloseable {
+public class SpreadSimulator implements SpreadAdapter {
     private static final Logger logger = LoggerFactory.getLogger(SpreadSimulator.class);
     
     private static final String SPREAD_EXCHANGE = "spread_group_exchange";
