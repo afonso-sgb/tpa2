@@ -15,8 +15,9 @@ VOLUME_NAME=${VOLUME_NAME:-glustervol}
 MOUNT_POINT=${MOUNT_POINT:-/var/sharedfiles}
 BRICK_DIR=${BRICK_DIR:-/var/gluster/brick}
 
-# Install GlusterFS server
+# Install GlusterFS server (as per Anexo 3)
 echo "Installing GlusterFS server..."
+sudo add-apt-repository ppa:gluster/glusterfs-11 -y
 sudo apt-get update
 sudo apt-get install -y glusterfs-server
 

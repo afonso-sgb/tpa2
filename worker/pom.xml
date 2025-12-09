@@ -34,6 +34,9 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
         </dependency>
+        <!-- Spread Toolkit (using spread-bin for Java bindings) -->
+        <!-- Note: Requires native spread daemon running -->
+        <!-- For now, we'll create a simulation layer that can be replaced -->
     </dependencies>
 
     <build>

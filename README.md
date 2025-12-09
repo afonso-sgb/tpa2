@@ -120,11 +120,14 @@ docker exec tpa2-worker1 sh -c 'echo "Meeting rescheduled to afternoon" > /var/s
 # Search for files
 java -jar userapp/target/userapp.jar search meeting
 
-# Search with multiple substrings
+# Search with multiple substrings (case-insensitive)
 java -jar userapp/target/userapp.jar search meeting tomorrow
 
+# Test email017.txt (Anexo 1) - should find with these substrings:
+java -jar userapp/target/userapp.jar search "gRPC em Java 21" "GCP" "Docker"
+
 # Get file content
-java -jar userapp/target/userapp.jar get-file email001.txt
+java -jar userapp/target/userapp.jar get-file email017.txt
 
 # Get statistics
 java -jar userapp/target/userapp.jar get-stats

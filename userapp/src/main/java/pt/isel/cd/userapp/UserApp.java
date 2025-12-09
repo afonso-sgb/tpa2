@@ -18,7 +18,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * User Application - CLI client for submitting requests and receiving responses.
  */
-public class UserApp {
+public class UserApp implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(UserApp.class);
     private static final int RESPONSE_TIMEOUT_SECONDS = 30;
     
@@ -176,8 +176,13 @@ public class UserApp {
                     }
                     List<String> substrings = Arrays.asList(Arrays.copyOfRange(args, 1, args.length));
                     SearchResultPayload searchResult = app.search(substrings);
-                    System.out.println("Found files:");
-                    searchResult.getFilenames().forEach(System.out::println);
+                    Map<String, String> results = searchResult.getResults();
+                    System.out.println("Found " + results.size() + " email(s) containing all substrings\n");
+                    for (String filename : results.keySet()) {
+                        System.out.println("##:" + filename);  // Anexo 2 format
+                        System.out.println(results.get(filename));
+                        System.out.println();
+                    }
                     break;
 
                 case "get-file":

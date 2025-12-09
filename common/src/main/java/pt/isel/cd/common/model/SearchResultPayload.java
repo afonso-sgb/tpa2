@@ -1,27 +1,28 @@
 package pt.isel.cd.common.model;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * Payload for SEARCH_RESULT responses.
+ * Contains a map of filename -> email content (as per Anexo 2 specification)
  */
 public class SearchResultPayload {
-    private List<String> filenames;
+    private Map<String, String> results;  // Map<filename, emailContent>
 
     public SearchResultPayload() {
     }
 
-    public SearchResultPayload(List<String> filenames) {
-        this.filenames = filenames;
+    public SearchResultPayload(Map<String, String> results) {
+        this.results = results;
     }
 
-    public List<String> getFilenames() {
-        return filenames;
+    public Map<String, String> getResults() {
+        return results;
     }
 
-    public void setFilenames(List<String> filenames) {
-        this.filenames = filenames;
+    public void setResults(Map<String, String> results) {
+        this.results = results;
     }
 
     @Override
@@ -29,18 +30,18 @@ public class SearchResultPayload {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         SearchResultPayload that = (SearchResultPayload) o;
-        return Objects.equals(filenames, that.filenames);
+        return Objects.equals(results, that.results);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(filenames);
+        return Objects.hash(results);
     }
 
     @Override
     public String toString() {
         return "SearchResultPayload{" +
-                "filenames=" + filenames +
+                "results=" + (results != null ? results.size() + " files" : "null") +
                 '}';
     }
 }

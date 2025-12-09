@@ -88,3 +88,38 @@ Eve
 EOF
 
 echo "Created $(ls -1 $OUTPUT_DIR/*.txt | wc -l) sample email files"
+
+# Email 17 - As per Anexo 1 specification
+cat > "$OUTPUT_DIR/email017.txt" << 'EOF'
+De: rodrigo.santiago@techteam.pt
+Para: manuela.afonso@techteam.pt, antonio.silva@techteam.pt
+Assunto: Protótipo gRPC em Java concluído
+Data: 2025-11-12
+
+Manuela e António,
+
+Boas notícias! Terminei o protótipo de serviço gRPC em Java 21.
+Implementação:
+- Definição do serviço em Protocol Buffers (.proto)
+- Server gRPC com múltiplos métodos (unary, streaming)
+- Cliente Java para testes
+- Exemplos de uso incluídos
+Resultados dos testes:
+- Latência média: 5ms (vs 45ms com REST)
+- Throughput: 10.000 req/s (vs 2.000 com REST)
+- Uso de CPU: 30% inferior ao REST
+- Tamanho das mensagens: 60% menor com protobuf
+O código está no repositório: github.com/techteam/grpc-prototype
+Próximos passos:
+1. Integrar com RabbitMQ para mensageria assíncrona
+2. Deploy em containers Docker
+3. Testes nas VMs da plataforma GCP
+4. Implementar autenticação e encriptação
+
+Manuela, podes fazer code review?
+
+Abraço,
+Rodrigo
+EOF
+
+echo "Email017.txt created (should be found with: 'gRPC em Java 21', 'GCP', 'Docker')"

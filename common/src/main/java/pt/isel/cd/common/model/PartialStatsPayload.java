@@ -3,83 +3,88 @@ package pt.isel.cd.common.model;
 import java.util.Objects;
 
 /**
- * Payload for STATISTICS responses.
+ * Partial statistics from a single worker.
  */
-public class StatisticsPayload {
+public class PartialStatsPayload {
+    private String workerId;
     private long totalRequests;
     private long successfulRequests;
     private long failedRequests;
-    private int workerCount;  // Number of workers that contributed to these stats
-
-    public StatisticsPayload() {
+    private long timestamp;
+    
+    public PartialStatsPayload() {
     }
-
-    public StatisticsPayload(long totalRequests, long successfulRequests, long failedRequests) {
-        this(totalRequests, successfulRequests, failedRequests, 1);
-    }
-
-    public StatisticsPayload(long totalRequests, long successfulRequests, long failedRequests, int workerCount) {
+    
+    public PartialStatsPayload(String workerId, long totalRequests, 
+                              long successfulRequests, long failedRequests) {
+        this.workerId = workerId;
         this.totalRequests = totalRequests;
         this.successfulRequests = successfulRequests;
         this.failedRequests = failedRequests;
-        this.workerCount = workerCount;
+        this.timestamp = System.currentTimeMillis();
     }
-
+    
+    public String getWorkerId() {
+        return workerId;
+    }
+    
+    public void setWorkerId(String workerId) {
+        this.workerId = workerId;
+    }
+    
     public long getTotalRequests() {
         return totalRequests;
     }
-
+    
     public void setTotalRequests(long totalRequests) {
         this.totalRequests = totalRequests;
     }
-
+    
     public long getSuccessfulRequests() {
         return successfulRequests;
     }
-
+    
     public void setSuccessfulRequests(long successfulRequests) {
         this.successfulRequests = successfulRequests;
     }
-
+    
     public long getFailedRequests() {
         return failedRequests;
     }
-
+    
     public void setFailedRequests(long failedRequests) {
         this.failedRequests = failedRequests;
     }
-
-    public int getWorkerCount() {
-        return workerCount;
+    
+    public long getTimestamp() {
+        return timestamp;
     }
-
-    public void setWorkerCount(int workerCount) {
-        this.workerCount = workerCount;
+    
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
-
+    
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        StatisticsPayload that = (StatisticsPayload) o;
-        return totalRequests == that.totalRequests && 
-               successfulRequests == that.successfulRequests && 
-               failedRequests == that.failedRequests &&
-               workerCount == that.workerCount;
+        PartialStatsPayload that = (PartialStatsPayload) o;
+        return Objects.equals(workerId, that.workerId);
     }
-
+    
     @Override
     public int hashCode() {
-        return Objects.hash(totalRequests, successfulRequests, failedRequests, workerCount);
+        return Objects.hash(workerId);
     }
-
+    
     @Override
     public String toString() {
-        return "StatisticsPayload{" +
-                "totalRequests=" + totalRequests +
+        return "PartialStatsPayload{" +
+                "workerId='" + workerId + '\'' +
+                ", totalRequests=" + totalRequests +
                 ", successfulRequests=" + successfulRequests +
                 ", failedRequests=" + failedRequests +
-                ", workerCount=" + workerCount +
+                ", timestamp=" + timestamp +
                 '}';
     }
 }

@@ -4,6 +4,8 @@ import com.rabbitmq.client.*;
 import pt.isel.cd.common.config.QueueConfig;
 import pt.isel.cd.common.model.*;
 import pt.isel.cd.common.util.JsonUtil;
+import pt.isel.cd.worker.spread.ElectionManager;
+import pt.isel.cd.worker.spread.SpreadSimulator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,16 +13,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
  * Worker - Processes search requests from RabbitMQ and searches files in GlusterFS.
- * Note: Spread integration for consensus/election is simplified in this version.
+ * Includes Spread integration for leader election and distributed statistics aggregation.
  */
 public class Worker {
     private static final Logger logger = LoggerFactory.getLogger(Worker.class);
@@ -29,6 +30,11 @@ public class Worker {
     private final Connection connection;
     private final Channel channel;
     private final Path sharedFilesPath;
+    private final long startTime;
+    
+    // Spread integration for consensus and election
+    private final SpreadSimulator spread;
+    private final ElectionManager electionManager;
     
     // Statistics counters
     private final AtomicLong totalRequests = new AtomicLong(0);
@@ -39,6 +45,7 @@ public class Worker {
             throws IOException, TimeoutException {
         this.workerId = workerId;
         this.sharedFilesPath = Paths.get(sharedFilesDir);
+        this.startTime = System.currentTimeMillis();
         
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(rabbitMqHost);
@@ -53,8 +60,33 @@ public class Worker {
         // Set QoS to process one message at a time (fair dispatch)
         channel.basicQos(1);
         
-        logger.info("Worker [{}] initialized. RabbitMQ: {}:{}, Files: {}", 
+        // Initialize Spread simulator for group communication
+        spread = new SpreadSimulator(workerId, "email_workers", rabbitMqHost, rabbitMqPort);
+        spread.joinGroup();
+        
+        // Initialize election manager
+        electionManager = new ElectionManager(workerId, spread, channel);
+        electionManager.setStatsProvider(this::getPartialStats);
+        
+        // Announce presence to the group
+        announcePresence();
+        
+        logger.info("Worker [{}] initialized with Spread. RabbitMQ: {}:{}, Files: {}", 
                     workerId, rabbitMqHost, rabbitMqPort, sharedFilesDir);
+    }
+    
+    private void announcePresence() {
+        try {
+            long uptime = System.currentTimeMillis() - startTime;
+            WorkerPresencePayload presence = new WorkerPresencePayload(
+                workerId, uptime, totalRequests.get());
+            SpreadMessage message = new SpreadMessage(
+                SpreadMessageType.WORKER_PRESENCE, workerId, presence);
+            spread.multicast(message);
+            logger.info("Worker [{}] announced presence to group", workerId);
+        } catch (IOException e) {
+            logger.error("Error announcing presence", e);
+        }
     }
 
     public void start() throws IOException {
@@ -71,17 +103,20 @@ public class Worker {
                 
                 ResponseMessage response = processRequest(request);
                 
-                // Send response to client queue
-                if (request.getClientQueue() != null && !request.getClientQueue().isEmpty()) {
-                    byte[] responseBytes = JsonUtil.toJsonBytes(response);
-                    channel.basicPublish("", request.getClientQueue(), null, responseBytes);
-                    logger.debug("Worker [{}] sent response to {}", workerId, request.getClientQueue());
-                }
-                
-                if (response.getStatus() == ResponseStatus.OK) {
-                    successfulRequests.incrementAndGet();
-                } else {
-                    failedRequests.incrementAndGet();
+                // If response is null, another worker will handle it (e.g., election loser)
+                if (response != null) {
+                    // Send response to client queue
+                    if (request.getClientQueue() != null && !request.getClientQueue().isEmpty()) {
+                        byte[] responseBytes = JsonUtil.toJsonBytes(response);
+                        channel.basicPublish("", request.getClientQueue(), null, responseBytes);
+                        logger.debug("Worker [{}] sent response to {}", workerId, request.getClientQueue());
+                    }
+                    
+                    if (response.getStatus() == ResponseStatus.OK) {
+                        successfulRequests.incrementAndGet();
+                    } else {
+                        failedRequests.incrementAndGet();
+                    }
                 }
                 
                 // Acknowledge the message
@@ -137,19 +172,27 @@ public class Worker {
         
         logger.info("Worker [{}] searching for: {}", workerId, substrings);
         
-        List<String> matchingFiles = new ArrayList<>();
+        Map<String, String> matchingEmails = new HashMap<>();
         
         try (Stream<Path> paths = Files.walk(sharedFilesPath)) {
-            matchingFiles = paths
+            paths
                 .filter(Files::isRegularFile)
                 .filter(path -> path.toString().endsWith(".txt"))
-                .filter(path -> containsAllSubstrings(path, substrings))
-                .map(Path::toString)
-                .collect(Collectors.toList());
+                .forEach(path -> {
+                    try {
+                        String emailMessage = Files.readString(path);
+                        if (containsAllSubstrings(emailMessage, substrings)) {
+                            // Use filename only (not full path) as key
+                            matchingEmails.put(path.getFileName().toString(), emailMessage);
+                        }
+                    } catch (IOException e) {
+                        logger.error("Read error in file: {} - {}", path, e.getMessage());
+                    }
+                });
             
-            logger.info("Worker [{}] found {} matching files", workerId, matchingFiles.size());
+            logger.info("Worker [{}] found {} matching files", workerId, matchingEmails.size());
             
-            SearchResultPayload resultPayload = new SearchResultPayload(matchingFiles);
+            SearchResultPayload resultPayload = new SearchResultPayload(matchingEmails);
             return new ResponseMessage(
                 request.getRequestId(),
                 ResponseStatus.OK,
@@ -168,14 +211,14 @@ public class Worker {
         }
     }
 
-    private boolean containsAllSubstrings(Path file, List<String> substrings) {
-        try {
-            String content = Files.readString(file);
-            return substrings.stream().allMatch(content::contains);
-        } catch (IOException e) {
-            logger.error("Error reading file: {}", file, e);
-            return false;
+    private boolean containsAllSubstrings(String message, List<String> substrings) {
+        String lowerMessage = message.toLowerCase();
+        for (String substr : substrings) {
+            if (!lowerMessage.contains(substr.toLowerCase())) {
+                return false;
+            }
         }
+        return true;
     }
 
     private ResponseMessage handleGetFile(RequestMessage request) {
@@ -226,25 +269,44 @@ public class Worker {
     }
 
     private ResponseMessage handleGetStats(RequestMessage request) {
-        logger.info("Worker [{}] collecting statistics", workerId);
+        logger.info("Worker [{}] initiating election for statistics aggregation", workerId);
         
-        // In a full implementation, this would:
-        // 1. Initiate Spread-based consensus/election
-        // 2. Collect stats from all workers
-        // 3. Aggregate and return
-        // For now, return local worker stats
-        
-        StatisticsPayload stats = new StatisticsPayload(
+        try {
+            // Initiate election - the winner will send the response directly
+            electionManager.initiateElection(request.getRequestId(), request.getClientQueue());
+            
+            // Return null so this worker doesn't send a duplicate response
+            // The election winner will handle sending the response
+            return null;
+            
+        } catch (Exception e) {
+            logger.error("Error during statistics election", e);
+            // Fallback to local stats if election fails
+            StatisticsPayload localStats = new StatisticsPayload(
+                totalRequests.get(),
+                successfulRequests.get(),
+                failedRequests.get(),
+                1  // Only this worker
+            );
+            
+            return new ResponseMessage(
+                request.getRequestId(),
+                ResponseStatus.OK,
+                ResponseType.STATISTICS,
+                localStats
+            );
+        }
+    }
+    
+    /**
+     * Get partial statistics from this worker for aggregation.
+     */
+    private PartialStatsPayload getPartialStats() {
+        return new PartialStatsPayload(
+            workerId,
             totalRequests.get(),
             successfulRequests.get(),
             failedRequests.get()
-        );
-        
-        return new ResponseMessage(
-            request.getRequestId(),
-            ResponseStatus.OK,
-            ResponseType.STATISTICS,
-            stats
         );
     }
 
@@ -257,6 +319,9 @@ public class Worker {
     }
 
     public void close() throws IOException, TimeoutException {
+        if (spread != null) {
+            spread.close();
+        }
         if (channel != null && channel.isOpen()) {
             channel.close();
         }

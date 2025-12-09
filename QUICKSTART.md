@@ -41,6 +41,7 @@ docker cp ../EmailFiles/email002.txt tpa2-worker1:/var/sharedfiles/
 docker cp ../EmailFiles/email003.txt tpa2-worker1:/var/sharedfiles/
 docker cp ../EmailFiles/email004.txt tpa2-worker1:/var/sharedfiles/
 docker cp ../EmailFiles/email005.txt tpa2-worker1:/var/sharedfiles/
+docker cp ../EmailFiles/email017.txt tpa2-worker1:/var/sharedfiles/
 ```
 
 ### 5. Run Searches
@@ -60,6 +61,9 @@ java -jar userapp/target/userapp.jar get-file email001.txt
 
 # Get statistics
 java -jar userapp/target/userapp.jar get-stats
+
+# Test email017.txt (Anexo 1)
+java -jar userapp/target/userapp.jar search "gRPC em Java 21" "GCP" "Docker"
 ```
 
 ### 6. Monitor
